@@ -5,3 +5,4 @@
   tasks:
     - name: Ping Windows host
       ansible.windows.win_ping:
+      delegate_to: localhost
