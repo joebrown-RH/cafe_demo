@@ -1,22 +1,21 @@
 ---
 - name: Windows Offline Setup with Staged Chocolatey Packages
   hosts: all
-  gather_facts: yes
-  
+  gather_facts: true
+
   # --- Variables for Staged Paths ---
   # Define the paths used by the Execution Environment (EE)
   vars:
     # Internal EE path where chocolatey.nupkg and other packages are staged
-    ee_stage_dir: "/opt/ansible/stage/chocolatey"
+    ee_stage_dir: /opt/ansible/stage/chocolatey
     # Temporary directory on the Windows target node
-    win_temp_dir: "C:\\Temp"
+    win_temp_dir: C:\Temp
     # Local directory on the Windows node where Chocolatey installs local packages
-    choco_local_repo: "C:\\ProgramData\\chocolatey\\lib-local"
+    choco_local_repo: C:\ProgramData\chocolatey\lib-local
     # Default Chocolatey installation directory
-    choco_install_dir: "C:\\ProgramData\\chocolatey"
+    choco_install_dir: C:\ProgramData\chocolatey
 
   tasks:
-    
     - name: Ensure target temp directory exists ({{ win_temp_dir }})
       ansible.windows.win_file:
         path: "{{ win_temp_dir }}"
@@ -26,7 +25,6 @@
       ansible.windows.win_file:
         path: "{{ choco_local_repo }}"
         state: directory
-
 
     - name: Copy the Chocolatey core installation package (chocolatey.nupkg)
       ansible.windows.win_copy:
@@ -41,16 +39,16 @@
         script: |
           $ChocoPath = "{{ choco_install_dir }}"
           $TempChocoNupkg = "{{ win_temp_dir }}\\chocolatey.nupkg"
-          
+
           # 1. Ensure the final Chocolatey directory exists
           If (-not (Test-Path $ChocoPath)) {
               New-Item -Path $ChocoPath -ItemType Directory -Force
           }
-          
+
           # 2. Rename and move the nupkg to the required location for local install
           Rename-Item -Path $TempChocoNupkg -NewName tools.nupkg -Force
           Move-Item -Path "{{ win_temp_dir }}\\tools.nupkg" -Destination $ChocoPath\tools.nupkg -Force
-          
+
           # 3. Trigger the internal installation logic (creates choco.exe, sets path)
           # Note: The 'choco.exe install' will run locally against the tools.nupkg just moved.
           & "$ChocoPath\bin\choco.exe" install chocolatey -y --source $ChocoPath
@@ -75,4 +73,4 @@
       ansible.windows.win_file:
         path: "{{ win_temp_dir }}\\tools.nupkg"
         state: absent
-      ignore_errors: yes # Ignore if the file was cleaned up by choco installer
+      ignore_errors: true # Ignore if the file was cleaned up by choco installer
