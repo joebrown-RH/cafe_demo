@@ -1,6 +1,6 @@
 ---
 - name: Windows setup for café demo
   hosts: all
-  gather_facts: yes
+  gather_facts: true
   roles:
     - win_bootstrap
