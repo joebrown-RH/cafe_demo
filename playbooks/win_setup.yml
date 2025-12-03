@@ -1,11 +1,11 @@
 ---
 - name: Windows setup for café demo
   hosts: all
-  gather_facts: yes
-  tasks: 
+  gather_facts: true
+  tasks:
     - name: Ensure temp directory exists
       ansible.windows.win_file:
-        path: "C:\\Temp"
+        path: C:\Temp
         state: directory
 
     - name: Install Chocolatey
