@@ -58,7 +58,7 @@
     - name: Copy the example package (git.install.2.52.0.nupkg) to the local repository
       ansible.windows.win_copy:
         # Source: Location inside the Execution Environment (Linux path)
-        src: "{{ ee_stage_dir }}/git.nupkg"
+        src: "{{ ee_stage_dir }}/git.install.2.52.0.nupkg"
         # Destination: Local repository folder on the Windows node (forward slash)
         dest: "{{ choco_local_repo }}/git.install.2.52.0.nupkg"
 
