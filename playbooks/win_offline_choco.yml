@@ -31,7 +31,7 @@
     - name: Copy the Chocolatey core installation package (chocolatey.nupkg)
       ansible.windows.win_copy:
         # Source: Location inside the Execution Environment
-        src: "{{ ee_stage_dir }}\\chocolatey.nupkg"
+        src: "{{ ee_stage_dir }}/chocolatey.nupkg"
         # Destination: Temporary location on the Windows node
         dest: "{{ win_temp_dir }}\\chocolatey.nupkg"
 
