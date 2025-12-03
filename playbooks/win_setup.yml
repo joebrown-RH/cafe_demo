@@ -5,7 +5,7 @@
   tasks: 
     - name: Ensure temp directory exists
       ansible.windows.win_file:
-        path: "{{ win_temp_dir }}"
+        path: "C:\\Temp"
         state: directory
 
     - name: Install Chocolatey
