@@ -1,0 +1,85 @@
+---
+- name: 💻 Windows Offline Setup with Staged Chocolatey Packages
+  hosts: all
+  gather_facts: true
+  
+  # --- Define Paths and Variables ---
+  vars:
+    # --- File Names (Must match EE staging output) ---
+    choco_nupkg_file: "chocolatey.2.6.0.nupkg"
+    git_nupkg_file: "git.install.2.52.0.nupkg"
+
+    # --- Directory Paths ---
+    ee_stage_dir: "/opt/ansible/stage/chocolatey"
+    win_temp_dir: "C:/Temp"
+    choco_local_repo: "C:/ProgramData/chocolatey/lib-local"
+    choco_install_dir: "C:/ProgramData/chocolatey"
+
+  tasks:
+    
+    ## 1. Preparation on Target Node
+    
+    - name: Ensure target temp directory exists ({{ win_temp_dir }})
+      ansible.windows.win_file:
+        path: "{{ win_temp_dir }}"
+        state: directory
+
+    - name: Ensure Chocolatey local repository exists ({{ choco_local_repo }})
+      ansible.windows.win_file:
+        path: "{{ choco_local_repo }}"
+        state: directory
+
+    ## 2. Offline Chocolatey Client Installation
+
+    - name: Copy the Chocolatey core installation package ({{ choco_nupkg_file }})
+      ansible.windows.win_copy:
+        src: "{{ ee_stage_dir }}/{{ choco_nupkg_file }}"
+        # CRITICAL FIX: Destination name MUST match the full source name for the PS script to find it.
+        dest: "{{ win_temp_dir }}/{{ choco_nupkg_file }}"
+
+    - name: Install Chocolatey using the local package via PowerShell
+      ansible.windows.win_powershell:
+        script: |
+          $ChocoPath = "{{ choco_install_dir }}"
+          # CRITICAL FIX: Reference the full, versioned file name copied by win_copy.
+          $TempChocoNupkg = "{{ win_temp_dir }}/{{ choco_nupkg_file }}"
+          $ChocoToolsNupkg = "tools.nupkg"
+          
+          # 1. Ensure the final Chocolatey directory exists
+          If (-not (Test-Path $ChocoPath)) {
+              New-Item -Path $ChocoPath -ItemType Directory -Force
+          }
+          
+          # 2. Rename and move the nupkg to the required location for local install
+          Rename-Item -Path $TempChocoNupkg -NewName $ChocoToolsNupkg -Force
+          Move-Item -Path "{{ win_temp_dir }}/$ChocoToolsNupkg" -Destination "$ChocoPath\tools.nupkg" -Force
+          
+          # 3. Trigger the internal installation logic
+          & "$ChocoPath\bin\choco.exe" install chocolatey -y --source "$ChocoPath"
+
+    ## 3. Offline Package Installation (Git)
+
+    - name: Copy the example package ({{ git_nupkg_file }}) to the local repository
+      ansible.windows.win_copy:
+        src: "{{ ee_stage_dir }}/{{ git_nupkg_file }}"
+        # Destination must keep the versioned name for the local repo
+        dest: "{{ choco_local_repo }}/{{ git_nupkg_file }}"
+
+    - name: Install example package (git) from the local repository (Direct Call)
+      ansible.windows.win_powershell:
+        script: |
+          # Use the full path to choco.exe to avoid PATH issues
+          $ChocoExe = "{{ choco_install_dir }}\bin\choco.exe" 
+          $LocalSource = "{{ choco_local_repo }}"
+
+          # Execute the Chocolatey install command against the local source
+          & "$ChocoExe" install git -y --source "$LocalSource"
+      register: git_install_result
+      # Ensure choco.exe is fully initialized before proceeding
+
+    - name: Clean up temporary Chocolatey package files
+      ansible.windows.win_file:
+        # Use simple path style for cleanup
+        path: "{{ win_temp_dir }}/tools.nupkg"
+        state: absent
+      ignore_errors: true
