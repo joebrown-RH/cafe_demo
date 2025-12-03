@@ -2,5 +2,18 @@
 - name: Windows setup for café demo
   hosts: all
   gather_facts: yes
-  roles:
-    - win_bootstrap
+  tasks: 
+    - name: Ensure temp directory exists
+      ansible.windows.win_file:
+        path: "{{ win_temp_dir }}"
+       state: directory
+
+    - name: Install Chocolatey
+      chocolatey.chocolatey.win_chocolatey:
+        name: chocolatey
+        state: present
+
+    - name: Install example package
+      chocolatey.chocolatey.win_chocolatey:
+        name: git
+        state: present
